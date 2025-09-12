@@ -78,7 +78,8 @@ def wrap_text_to_fit(text: str, font, draw, max_width: int) -> list:
 def create_text_image(text: str, size: int = 1092, font_size: int = 32,
                        alignment: str = 'center') -> tuple[np.ndarray, bool]:
     """Create a square text image with specified text, font size, and alignment."""
-    image = Image.new('RGB', (size, size), color='#333333')
+    # Dark background for better contrast
+    image = Image.new('RGB', (size, size), color='#000000')  # Black background
     draw = ImageDraw.Draw(image)
 
     try:
@@ -126,7 +127,8 @@ def create_text_image(text: str, size: int = 1092, font_size: int = 32,
             bbox = draw.textbbox((0, 0), line, font=font)
             line_width = bbox[2] - bbox[0]
             x = (size - line_width) // 2
-            draw.text((x, y), line, font=font, fill='#00b002')
+            # Changed to red text for better embedding in red channel
+            draw.text((x, y), line, font=font, fill='#FF0000')  # Pure red
 
     elif alignment in ['left', 'right']:
         start_y = max(margin, (size - total_height) // 2)
@@ -140,7 +142,7 @@ def create_text_image(text: str, size: int = 1092, font_size: int = 32,
                 bbox = draw.textbbox((0, 0), line, font=font)
                 line_width = bbox[2] - bbox[0]
                 x = size - margin - line_width
-            draw.text((x, y), line, font=font, fill='#00b002')
+            draw.text((x, y), line, font=font, fill='#FF0000')  # Pure red
 
     else:  # corner alignments
         if alignment.startswith('top'):
@@ -157,7 +159,7 @@ def create_text_image(text: str, size: int = 1092, font_size: int = 32,
                 bbox = draw.textbbox((0, 0), line, font=font)
                 line_width = bbox[2] - bbox[0]
                 x = size - margin - line_width
-            draw.text((x, y), line, font=font, fill='#00b002')
+            draw.text((x, y), line, font=font, fill='#FF0000')  # Pure red
 
     return np.array(image), text_overflowed
 
