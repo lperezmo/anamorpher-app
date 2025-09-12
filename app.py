@@ -220,6 +220,7 @@ def generate_adversarial(decoy_img: Image.Image, text: str, method: str,
 st.title('Anamorpher Streamlit App')
 
 uploaded = st.file_uploader('Upload image (auto-cropped to square)', type=['png', 'jpg', 'jpeg'])
+
 text = st.text_input('Hidden text', 'secret')
 method = st.selectbox('Method', ['bicubic', 'bilinear', 'nearest'])
 
@@ -246,12 +247,14 @@ if uploaded and st.button('Generate'):
         col1.image(decoy, caption='Original', use_column_width=True)
         col2.image(adv_img, caption='Adversarial', use_column_width=True)
 
+
         st.subheader('Target Text Image')
         st.image(target_img, caption='Target', use_column_width=True)
 
         st.subheader('Downscaled Preview')
         preview = adv_img.resize((adv_img.width // 4, adv_img.height // 4), Image.LANCZOS)
         st.image(preview, caption='Adversarial (downscaled)', use_column_width=True)
+
 
         buf = BytesIO()
         adv_img.save(buf, format='PNG')
