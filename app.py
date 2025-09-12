@@ -250,16 +250,16 @@ if uploaded and st.button('Generate'):
         target_img, adv_img = generate_adversarial(decoy, text, method, lam, eps, gamma, dark_frac, offset)
 
         col1, col2 = st.columns(2)
-        col1.image(decoy, caption='Original', use_column_width=True)
-        col2.image(adv_img, caption='Adversarial', use_column_width=True)
+        col1.image(decoy, caption='Original', use_container_width=True)
+        col2.image(adv_img, caption='Adversarial', use_container_width=True)
 
 
         st.subheader('Target Text Image')
-        st.image(target_img, caption='Target', use_column_width=True)
+        st.image(target_img, caption='Target', use_container_width=True)
 
         st.subheader('Downscaled Preview')
         preview = adv_img.resize((adv_img.width // 4, adv_img.height // 4), Image.LANCZOS)
-        st.image(preview, caption='Adversarial (downscaled)', use_column_width=True)
+        st.image(preview, caption='Adversarial (downscaled)', use_container_width=True)
 
 
         buf = BytesIO()
