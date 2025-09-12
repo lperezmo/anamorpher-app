@@ -165,7 +165,13 @@ def generate_adversarial(decoy_img: Image.Image, text: str, method: str,
         decoy_img.save(decoy_path)
         Image.fromarray(target_arr).save(target_path)
 
-        script_dir = os.path.join(os.path.dirname(__file__), 'adversarial_generators')
+        # Resolve the directory containing the generator scripts. Using abspath ensures
+        # we don't end up with a relative path (e.g. 'adversarial_generators') which,
+        # when combined with cwd=tmpdir in subprocess.run, would incorrectly look for
+        # the scripts inside the temporary directory instead of the project.
+        script_dir = os.path.join(os.path.dirname(os.path.abspath(__file__)), 'adversarial_generators')
+        if not os.path.isdir(script_dir):
+            raise RuntimeError(f'Generator scripts directory not found: {script_dir}')
         if method == 'bicubic':
             script = 'bicubic_gen_payload.py'
             cmd = [
@@ -205,7 +211,7 @@ def generate_adversarial(decoy_img: Image.Image, text: str, method: str,
 
         result = subprocess.run(cmd, cwd=tmpdir, capture_output=True, text=True)
         if result.returncode != 0:
-            raise RuntimeError(result.stderr)
+            raise RuntimeError(f'Generator failed (exit {result.returncode}).\nCommand: {" ".join(cmd)}\nSTDOUT:\n{result.stdout}\nSTDERR:\n{result.stderr}')
 
         adv_files = glob.glob(os.path.join(tmpdir, pattern))
         if not adv_files:
