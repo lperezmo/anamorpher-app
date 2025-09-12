@@ -77,41 +77,82 @@ def wrap_text_to_fit(text: str, font, draw, max_width: int) -> list:
 
 def create_text_image(text: str, size: int = 1092, font_size: int = 32,
                        alignment: str = 'center') -> tuple[np.ndarray, bool]:
-    """Create a square text image with specified text, font size, and alignment."""
+    """Create a square text image and dynamically scale font to fill area.
+
+    The previous implementation used a fixed ``font_size`` (default 32). This
+    version automatically finds the largest font size that allows the wrapped
+    text to fit inside the box (with a margin) both horizontally and vertically.
+    ``font_size`` is now treated as a *minimum* starting hint; the algorithm
+    will scale up from there until it no longer fits, then use the largest
+    successful size. Returns the image array and a boolean indicating whether
+    the text still overflowed even at the minimum size (rare / extreme cases).
+    """
     # Dark background for better contrast
     image = Image.new('RGB', (size, size), color='#000000')  # Black background
     draw = ImageDraw.Draw(image)
 
-    try:
-        font = ImageFont.truetype('Arial.ttf', font_size)
-    except OSError:
+    # Helper to load a font of a given size with fallbacks
+    def load_font(fs: int):
         try:
+            return ImageFont.truetype('Arial.ttf', fs)
+        except OSError:
             font_paths = [
                 '/System/Library/Fonts/Arial.ttf',
                 '/usr/share/fonts/truetype/dejavu/DejaVuSans.ttf',
                 'C:\\Windows\\Fonts\\arial.ttf'
             ]
-            font = None
-            for font_path in font_paths:
-                if os.path.exists(font_path):
-                    font = ImageFont.truetype(font_path, font_size)
-                    break
-            if font is None:
-                font = ImageFont.load_default()
-        except OSError:
-            font = ImageFont.load_default()
+            for p in font_paths:
+                if os.path.exists(p):
+                    try:
+                        return ImageFont.truetype(p, fs)
+                    except OSError:
+                        continue
+            return ImageFont.load_default()
 
     margin = 10
     text_area_width = size - 2 * margin
     text_area_height = size - 2 * margin
 
-    wrapped_lines = wrap_text_to_fit(text, font, draw, text_area_width)
+    # Binary search for largest fitting font size
+    min_fs = max(6, font_size)  # ensure sensible minimum
+    low, high = min_fs, size  # cannot exceed image size
+    best = None  # (font, lines, line_height, total_height, max_line_width)
 
-    line_height = draw.textbbox((0, 0), 'Ay', font=font)[3] - draw.textbbox((0, 0), 'Ay', font=font)[1]
-    total_height = len(wrapped_lines) * line_height
+    while low <= high:
+        mid = (low + high) // 2
+        font_mid = load_font(mid)
+        # wrap using a temporary draw context
+        candidate_lines = wrap_text_to_fit(text, font_mid, draw, text_area_width)
+        # measure heights / widths
+        # Use a representative string for line height (cap + descender)
+        bbox_ref = draw.textbbox((0, 0), 'Ay', font=font_mid)
+        line_h = bbox_ref[3] - bbox_ref[1]
+        total_h = line_h * len(candidate_lines)
+        max_w = 0
+        for ln in candidate_lines:
+            bbox_ln = draw.textbbox((0, 0), ln, font=font_mid)
+            max_w = max(max_w, bbox_ln[2] - bbox_ln[0])
 
-    text_overflowed = total_height > text_area_height
+        fits = (total_h <= text_area_height) and (max_w <= text_area_width)
+        if fits:
+            best = (font_mid, candidate_lines, line_h, total_h)
+            low = mid + 1  # try bigger
+        else:
+            high = mid - 1  # too big
 
+    if best is None:
+        # Even the minimum size overflowed; fall back to min_fs font
+        font = load_font(min_fs)
+        wrapped_lines = wrap_text_to_fit(text, font, draw, text_area_width)
+        bbox_ref = draw.textbbox((0, 0), 'Ay', font=font)
+        line_height = bbox_ref[3] - bbox_ref[1]
+        total_height = line_height * len(wrapped_lines)
+        text_overflowed = True
+    else:
+        font, wrapped_lines, line_height, total_height = best
+        text_overflowed = False
+
+    # Rendering (same logic as before, but using computed variables)
     if alignment in ['center', 'top', 'bottom']:
         if alignment == 'center':
             start_y = max(margin, (size - total_height) // 2)
@@ -127,7 +168,6 @@ def create_text_image(text: str, size: int = 1092, font_size: int = 32,
             bbox = draw.textbbox((0, 0), line, font=font)
             line_width = bbox[2] - bbox[0]
             x = (size - line_width) // 2
-            # Changed to red text for better embedding in red channel
             draw.text((x, y), line, font=font, fill='#FF0000')  # Pure red
 
     elif alignment in ['left', 'right']:

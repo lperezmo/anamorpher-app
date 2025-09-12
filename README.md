@@ -17,3 +17,7 @@ This Streamlit app lets you upload an image and plant hidden text so that when t
 
 
 The heavy lifting is done by the scripts in `adversarial_generators` derived from the [anamorpher](https://github.com/lperezmo/anamorpher) project.
+
+### Text Rendering
+
+The target text image now auto-scales: the app finds the largest font size that allows the wrapped text to fit entirely inside the target square (with a 10px margin). The `font_size` parameter in code acts only as a minimum hint; longer strings shrink only if even the minimum size overflows.
