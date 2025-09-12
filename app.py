@@ -124,6 +124,26 @@ def create_text_image(text: str, size: int = 1092, font_size: int = 32,
     return np.array(image), text_overflowed
 
 
+# ---------- Image preprocessing ----------
+
+def prepare_decoy_image(img: Image.Image) -> Image.Image:
+    """Center-crop to square and ensure dimensions divisible by 4."""
+    w, h = img.size
+    if w != h:
+        min_dim = min(w, h)
+        left = (w - min_dim) // 2
+        top = (h - min_dim) // 2
+        img = img.crop((left, top, left + min_dim, top + min_dim))
+
+    size = (img.width // 4) * 4
+    if img.width != size:
+        left = (img.width - size) // 2
+        top = (img.height - size) // 2
+        img = img.crop((left, top, left + size, top + size))
+
+    return img
+
+
 # ---------- Adversarial generation ----------
 
 def generate_adversarial(decoy_img: Image.Image, text: str, method: str,
@@ -199,7 +219,8 @@ def generate_adversarial(decoy_img: Image.Image, text: str, method: str,
 
 st.title('Anamorpher Streamlit App')
 
-uploaded = st.file_uploader('Upload square image (dimensions divisible by 4)', type=['png', 'jpg', 'jpeg'])
+uploaded = st.file_uploader('Upload image (auto-cropped to square)', type=['png', 'jpg', 'jpeg'])
+
 text = st.text_input('Hidden text', 'secret')
 method = st.selectbox('Method', ['bicubic', 'bilinear', 'nearest'])
 
@@ -219,16 +240,21 @@ else:
 if uploaded and st.button('Generate'):
     try:
         decoy = Image.open(uploaded).convert('RGB')
+        decoy = prepare_decoy_image(decoy)
         target_img, adv_img = generate_adversarial(decoy, text, method, lam, eps, gamma, dark_frac, offset)
 
-        st.subheader('Original Image')
-        st.image(decoy, caption='Decoy', use_column_width=True)
+        col1, col2 = st.columns(2)
+        col1.image(decoy, caption='Original', use_column_width=True)
+        col2.image(adv_img, caption='Adversarial', use_column_width=True)
+
 
         st.subheader('Target Text Image')
         st.image(target_img, caption='Target', use_column_width=True)
 
-        st.subheader('Adversarial Image')
-        st.image(adv_img, caption='Adversarial', use_column_width=True)
+        st.subheader('Downscaled Preview')
+        preview = adv_img.resize((adv_img.width // 4, adv_img.height // 4), Image.LANCZOS)
+        st.image(preview, caption='Adversarial (downscaled)', use_column_width=True)
+
 
         buf = BytesIO()
         adv_img.save(buf, format='PNG')
