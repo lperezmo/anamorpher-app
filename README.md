@@ -36,7 +36,7 @@ uv sync
 ## Usage
 
 ```bash
-streamlit run app.py
+uv run streamlit run app.py
 ```
 
 Then in the browser:
