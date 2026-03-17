@@ -1,0 +1,12 @@
+[project]
+name = "anamorpher-app"
+version = "0.1.0"
+description = "Streamlit app for generating adversarial anamorphic images that reveal hidden text when downscaled 4x"
+readme = "README.md"
+requires-python = ">=3.11"
+dependencies = [
+    "numpy>=2.4.3",
+    "opencv-python-headless>=4.13.0.92",
+    "pillow>=12.1.1",
+    "streamlit>=1.55.0",
+]

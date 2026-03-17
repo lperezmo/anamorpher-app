@@ -6,6 +6,12 @@ __pycache__/
 # C extensions
 *.so
 
+# reference repo
+references/
+scratchpad.md
+CLAUDE.md
+.claude/
+
 # Distribution / packaging
 .Python
 build/
