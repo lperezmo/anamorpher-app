@@ -82,21 +82,41 @@ def wrap_text_to_fit(text: str, font, draw, max_width: int) -> list:
 
 
 def _load_font(font_size: int):
-    """Load a font with fallbacks."""
+    """Load a scalable TrueType font with broad platform fallbacks.
+
+    Searches common font paths on macOS, Windows, and Linux (including
+    Streamlit Cloud which runs Debian/Ubuntu).  Falls back to Pillow's
+    built-in load_default(size=) which ships a scalable font since
+    Pillow 10.1+.
+    """
+    font_paths = [
+        # Windows
+        "C:\\Windows\\Fonts\\arial.ttf",
+        "C:\\Windows\\Fonts\\calibri.ttf",
+        # macOS
+        "/System/Library/Fonts/Arial.ttf",
+        "/System/Library/Fonts/Helvetica.ttc",
+        # Linux common (Debian/Ubuntu/Streamlit Cloud)
+        "/usr/share/fonts/truetype/dejavu/DejaVuSans.ttf",
+        "/usr/share/fonts/truetype/liberation2/LiberationSans-Regular.ttf",
+        "/usr/share/fonts/truetype/liberation/LiberationSans-Regular.ttf",
+        "/usr/share/fonts/truetype/noto/NotoSans-Regular.ttf",
+        "/usr/share/fonts/truetype/freefont/FreeSans.ttf",
+        "/usr/share/fonts/truetype/lato/Lato-Regular.ttf",
+        "/usr/share/fonts/truetype/google-fonts/Poppins-Regular.ttf",
+    ]
+    for p in font_paths:
+        if os.path.exists(p):
+            try:
+                return ImageFont.truetype(p, font_size)
+            except OSError:
+                continue
+    # Pillow >= 10.1 load_default accepts size= and returns a scalable font
     try:
-        return ImageFont.truetype("Arial.ttf", font_size)
-    except OSError:
-        font_paths = [
-            "/System/Library/Fonts/Arial.ttf",
-            "/usr/share/fonts/truetype/dejavu/DejaVuSans.ttf",
-            "C:\\Windows\\Fonts\\arial.ttf",
-        ]
-        for p in font_paths:
-            if os.path.exists(p):
-                try:
-                    return ImageFont.truetype(p, font_size)
-                except OSError:
-                    continue
+        return ImageFont.load_default(size=font_size)
+    except TypeError:
+        # Pillow < 10.1: load_default() returns a tiny bitmap font.
+        # This is the worst case — text will be tiny and unscalable.
         return ImageFont.load_default()
 
 
@@ -479,7 +499,7 @@ with col_input:
             decoy_preview = prepare_decoy_image(decoy_preview)
 
         if decoy_preview:
-            st.image(decoy_preview, caption="Preprocessed Image", use_container_width=True)
+            st.image(decoy_preview, caption="Preprocessed Image", width="stretch")
             st.caption(
                 f"{decoy_preview.width} x {decoy_preview.height} px | "
                 f"Target: {decoy_preview.width // 4} x {decoy_preview.height // 4} px"
@@ -631,15 +651,15 @@ with col_results:
         with tab_compare:
             c1, c2 = st.columns(2)
             with c1:
-                st.image(gen["original"], caption="Original Decoy", use_container_width=True)
+                st.image(gen["original"], caption="Original Decoy", width="stretch")
             with c2:
-                st.image(gen["adversarial"], caption="Adversarial Image", use_container_width=True)
+                st.image(gen["adversarial"], caption="Adversarial Image", width="stretch")
 
         with tab_reveal:
             st.image(
                 gen["matched_preview"],
                 caption=f"4x Downscaled with matched algorithm ({gen['method']})",
-                use_container_width=True,
+                width="stretch",
             )
             st.info(
                 f":material/info: This preview uses the **{gen['method']}** downscaling "
@@ -660,13 +680,13 @@ with col_results:
                 cols = st.columns(len(row_names))
                 for col, name in zip(cols, row_names):
                     with col:
-                        st.image(all_ds[name], caption=name, use_container_width=True)
+                        st.image(all_ds[name], caption=name, width="stretch")
 
         with tab_target:
             st.image(
                 gen["target"],
                 caption=f"Target Text: '{gen['text']}'",
-                use_container_width=True,
+                width="stretch",
             )
             st.caption(
                 "This is the image the generator tries to match when the adversarial "
@@ -695,7 +715,7 @@ with col_results:
                     rows.append(("Dark Fraction", params["dark_frac"]))
                 if params["offset"] is not None:
                     rows.append(("Offset", params["offset"]))
-                st.table({"Parameter": [r[0] for r in rows], "Value": [r[1] for r in rows]})
+                st.table({"Parameter": [r[0] for r in rows], "Value": [str(r[1]) for r in rows]})
 
             with st.expander("Generator Script Output", expanded=False, icon=":material/terminal:"):
                 st.code(gen["script_output"], language="text")
