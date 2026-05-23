@@ -5,7 +5,7 @@
   <a href="https://www.python.org/"><img src="https://img.shields.io/badge/python-%E2%89%A53.11-blue" alt="Python >= 3.11"></a>
   <a href="https://github.com/lperezmo/anamorpher-app/blob/main/LICENSE"><img src="https://img.shields.io/github/license/lperezmo/anamorpher-app" alt="License"></a>
   <br>
-  <a href="https://anamorpher.streamlit.app/"><img src="https://static.streamlit.io/badges/streamlit_badge_black_white.svg" alt="Open in Streamlit"></a>
+  <a href="https://anamorpher.streamlit.app/"><img src="https://img.shields.io/badge/Streamlit-App-FF4B4B?logo=streamlit&logoColor=white" alt="Open in Streamlit"></a>
 </div>
 
 ---
